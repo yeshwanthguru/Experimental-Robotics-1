@@ -31,6 +31,10 @@
 
 Welcome to my latest ROS project, an investigation-inspired scenario that demonstrates the power of ROS packages in robotics! This project features an interactive scenario like a ontology based survilance robot. Check out the image below for a sneak peek of ROS package:
    
+
+https://user-images.githubusercontent.com/72270080/236030976-8b9b7641-e0b8-4966-a1f3-470d4e01b684.mp4
+
+
            
 ## 🧱 SOFTWARE ARCHITECTURE: 🏗️
 
