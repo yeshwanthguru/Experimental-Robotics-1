@@ -1,0 +1,7 @@
+robot\_state\_machine module
+============================
+
+.. automodule:: robot_state_machine
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,7 @@
+robot\_brain2 module
+====================
+
+.. automodule:: robot_brain2
+   :members:
+   :undoc-members:
+   :show-inheritance:
