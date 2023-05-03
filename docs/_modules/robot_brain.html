@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>robot_brain &mdash; expo_assignment_1 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            expo_assignment_1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">expo_assignment_1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">robot_brain</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for robot_brain</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">.. module:: robot_brain.py</span>
+<span class="sd">   :platform: Unix</span>
+<span class="sd">   :synopsis: Script for the initialization of the robots required data.  </span>
+<span class="sd">.. moduleauthor:: yeshwanth guru krishnakumar</span>
+
+<span class="sd">Robot brain data for control and planning executed in the script .</span>
+<span class="sd"> </span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">rospy</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">smach_ros</span>
+<span class="kn">import</span> <span class="nn">smach</span>
+<span class="kn">from</span> <span class="nn">smach</span> <span class="kn">import</span> <span class="n">StateMachine</span><span class="p">,</span><span class="n">State</span>
+<span class="kn">from</span> <span class="nn">std_msgs.msg</span> <span class="kn">import</span> <span class="n">Bool</span>
+<span class="kn">from</span> <span class="nn">robot_brain2</span> <span class="kn">import</span> <span class="n">sensory2</span>
+<span class="kn">from</span> <span class="nn">Expo_assignment_1</span> <span class="kn">import</span> <span class="n">architecture_name_mapper</span> <span class="k">as</span> <span class="n">anm</span>
+<span class="kn">from</span> <span class="nn">expo_assignment_1.msg</span> <span class="kn">import</span> <span class="n">Point</span><span class="p">,</span> <span class="n">ControlGoal</span><span class="p">,</span> <span class="n">PlanGoal</span>
+<span class="kn">from</span> <span class="nn">actionlib</span> <span class="kn">import</span> <span class="n">SimpleActionServer</span>
+<span class="kn">from</span> <span class="nn">expo_assignment_1.msg</span> <span class="kn">import</span> <span class="n">ControlFeedback</span><span class="p">,</span> <span class="n">ControlResult</span>
+<span class="kn">from</span> <span class="nn">expo_assignment_1.msg</span> <span class="kn">import</span> <span class="n">Point</span><span class="p">,</span> <span class="n">PlanFeedback</span><span class="p">,</span> <span class="n">PlanResult</span>
+<span class="kn">from</span> <span class="nn">expo_assignment_1.srv</span> <span class="kn">import</span> <span class="n">SetPose</span><span class="p">,</span><span class="n">GetPoseResponse</span><span class="p">,</span> <span class="n">SetPoseResponse</span>
+<span class="kn">from</span> <span class="nn">expo_assignment_1.srv</span> <span class="kn">import</span> <span class="n">GetPose</span>
+
+<span class="kn">import</span> <span class="nn">expo_assignment_1</span> 
+
+<span class="n">LOOP_SLEEP_TIME</span> <span class="o">=</span> <span class="mf">0.5</span>
+
+<span class="n">LOG_TAG</span> <span class="o">=</span> <span class="n">anm</span><span class="o">.</span><span class="n">NODE_SURVILANCE_BRAIN</span>
+
+
+<div class="viewcode-block" id="ControllingAction"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ControllingAction">[docs]</a><span class="k">class</span> <span class="nc">ControllingAction</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_as</span> <span class="o">=</span> <span class="n">SimpleActionServer</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">ACTION_CONTROLLER</span><span class="p">,</span> <span class="n">expo_assignment_1</span><span class="o">.</span><span class="n">msg</span><span class="o">.</span><span class="n">ControlAction</span><span class="p">,</span>
+                                       <span class="n">execute_cb</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">execute_callback</span><span class="p">,</span> <span class="n">auto_start</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">ACTION_CONTROLLER</span><span class="si">}</span><span class="s1"> Action Server initialized. It will navigate through the plan with a delay between each via point spanning in [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_random_motion_time</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">get_random_motion_time</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ControllingAction.execute_callback"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ControllingAction.execute_callback">[docs]</a>    <span class="k">def</span> <span class="nf">execute_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">feedback</span> <span class="o">=</span> <span class="n">ControlFeedback</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="s1">&#39;Server is controlling...&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">navigate_through_points</span><span class="p">(</span><span class="n">goal</span><span class="o">.</span><span class="n">via_points</span><span class="p">,</span> <span class="n">feedback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_succeeded</span><span class="p">(</span><span class="n">feedback</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ControllingAction.check_goal"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ControllingAction.check_goal">[docs]</a>    <span class="k">def</span> <span class="nf">check_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">goal</span> <span class="ow">and</span> <span class="n">goal</span><span class="o">.</span><span class="n">via_points</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="s1">&#39;No via points provided! This service will be aborted!&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">set_aborted</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="ControllingAction.navigate_through_points"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ControllingAction.navigate_through_points">[docs]</a>    <span class="k">def</span> <span class="nf">navigate_through_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">feedback</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">points</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">is_preempt_requested</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="s1">&#39;Service has been canceled by the client!&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">set_preempted</span><span class="p">()</span>
+                <span class="k">return</span>
+            <span class="n">delay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_random_motion_time</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_random_motion_time</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_random_motion_time</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
+            <span class="n">feedback</span><span class="o">.</span><span class="n">reached_point</span> <span class="o">=</span> <span class="n">point</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">publish_feedback</span><span class="p">(</span><span class="n">feedback</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Reaching point (</span><span class="si">{</span><span class="n">point</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">point</span><span class="o">.</span><span class="n">y</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_current_robot_position</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="s1">&#39;All points navigated.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ControllingAction.set_current_robot_position"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ControllingAction.set_current_robot_position">[docs]</a>    <span class="k">def</span> <span class="nf">set_current_robot_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Set current robot position to the `</span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_SET_POSE</span><span class="si">}</span><span class="s1">` node.&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">service</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_SET_POSE</span><span class="p">,</span> <span class="n">SetPose</span><span class="p">)</span>
+            <span class="n">service</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Server cannot set current robot position: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ControllingAction.set_succeeded"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ControllingAction.set_succeeded">[docs]</a>    <span class="k">def</span> <span class="nf">set_succeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feedback</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ControlResult</span><span class="p">()</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">reached_point</span> <span class="o">=</span> <span class="n">feedback</span><span class="o">.</span><span class="n">reached_point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_message</span><span class="p">(</span><span class="s1">&#39;Motion control successes.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">set_succeeded</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ControllingAction.get_random_motion_time"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ControllingAction.get_random_motion_time">[docs]</a>    <span class="k">def</span> <span class="nf">get_random_motion_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">PARAM_CONTROLLER_TIME</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="ControllingAction.log_message"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ControllingAction.log_message">[docs]</a>    <span class="k">def</span> <span class="nf">log_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">)))</span></div></div>
+        
+<div class="viewcode-block" id="PlanningAction"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.PlanningAction">[docs]</a><span class="k">class</span> <span class="nc">PlanningAction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class that creates a motion plan with a number of points spanning in a given range and each point generated</span>
+<span class="sd">    with a delay spanning in another given range. The plan is executed from a start point to a target point within a</span>
+<span class="sd">    given environment size.</span>
+
+<span class="sd">    :ivar _random_plan_points: A list of two integers indicating the minimum and maximum number of points in the motion</span>
+<span class="sd">                               plan.</span>
+<span class="sd">    :vartype _random_plan_points: list[int]</span>
+<span class="sd">    :ivar _random_plan_time: A list of two floats indicating the minimum and maximum delay time between each point</span>
+<span class="sd">                             generation in the motion plan.</span>
+<span class="sd">    :vartype _random_plan_time: list[float]</span>
+<span class="sd">    :ivar _environment_size: A list of two floats indicating the maximum x and y values of the environment where the</span>
+<span class="sd">                             motion plan is executed.</span>
+<span class="sd">    :vartype _environment_size: list[float]</span>
+<span class="sd">    :ivar _as: A SimpleActionServer object that handles the motion planning action.</span>
+<span class="sd">    :vartype _as: SimpleActionServer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_points</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">PARAM_PLANNER_POINTS</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">8</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_time</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">PARAM_PLANNER_TIME</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_environment_size</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">PARAM_ENVIRONMENT_SIZE</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_as</span> <span class="o">=</span> <span class="n">SimpleActionServer</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">ACTION_PLANNER</span><span class="p">,</span> <span class="n">expo_assignment_1</span><span class="o">.</span><span class="n">msg</span><span class="o">.</span><span class="n">PlanAction</span><span class="p">,</span><span class="n">execute_cb</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">execute_callback</span><span class="p">,</span> <span class="n">auto_start</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;`</span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">ACTION_PLANNER</span><span class="si">}</span><span class="s1">` Action Server initialised. It will create random path with a number of point &#39;</span>
+                   <span class="sa">f</span><span class="s1">&#39;spanning in [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_points</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_points</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">). Each point will be generated &#39;</span>
+                   <span class="sa">f</span><span class="s1">&#39;with a delay spanning in [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_time</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PlanningAction.execute_callback"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.PlanningAction.execute_callback">[docs]</a>    <span class="k">def</span> <span class="nf">execute_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal</span><span class="p">):</span>
+        <span class="n">start_point</span> <span class="o">=</span> <span class="n">_get_pose_client</span><span class="p">()</span>
+        <span class="n">target_point</span> <span class="o">=</span> <span class="n">goal</span><span class="o">.</span><span class="n">target</span>
+        <span class="k">if</span> <span class="n">start_point</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">target_point</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">logerr</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="s1">&#39;Cannot have `None` start point nor target_point. This service will be aborted!.&#39;</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">set_aborted</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_is_valid</span><span class="p">(</span><span class="n">start_point</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_valid</span><span class="p">(</span><span class="n">target_point</span><span class="p">)):</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">logerr</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Start point (</span><span class="si">{</span><span class="n">start_point</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">start_point</span><span class="o">.</span><span class="n">y</span><span class="si">}</span><span class="s1">) or target point (</span><span class="si">{</span><span class="n">target_point</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s1">, </span><span class="se">\</span>
+<span class="s1">                        </span><span class="si">{</span><span class="n">target_point</span><span class="o">.</span><span class="n">y</span><span class="si">}</span><span class="s1">) point out of the environment. This service will be aborted!.&#39;</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">set_aborted</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="n">feedback</span> <span class="o">=</span> <span class="n">PlanFeedback</span><span class="p">(</span><span class="n">via_points</span><span class="o">=</span><span class="p">[</span><span class="n">start_point</span><span class="p">])</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">publish_feedback</span><span class="p">(</span><span class="n">feedback</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_points</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_points</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">is_preempt_requested</span><span class="p">():</span>
+                <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="s1">&#39;Server has been cancelled by the client!&#39;</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">set_preempted</span><span class="p">()</span>
+                <span class="k">return</span>
+
+            <span class="n">new_point</span> <span class="o">=</span> <span class="n">Point</span><span class="p">()</span>
+            <span class="n">new_point</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_environment_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">new_point</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_environment_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">feedback</span><span class="o">.</span><span class="n">via_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_point</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_points</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">publish_feedback</span><span class="p">(</span><span class="n">feedback</span><span class="p">)</span>
+                <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_plan_time</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">feedback</span><span class="o">.</span><span class="n">via_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target_point</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">PlanResult</span><span class="p">(</span><span class="n">via_points</span><span class="o">=</span><span class="n">feedback</span><span class="o">.</span><span class="n">via_points</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_as</span><span class="o">.</span><span class="n">set_succeeded</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="s1">&#39;Motion plan succeeded with plan: &#39;</span>
+        <span class="n">log_msg</span> <span class="o">+=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;), &#39;</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">via_points</span><span class="p">)</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_is_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">point</span><span class="o">.</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_environment_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">point</span><span class="o">.</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_environment_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_pose_client</span><span class="p">():</span>     
+    <span class="n">service</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_GET_POSE</span><span class="p">,</span> <span class="n">GetPose</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">service</span><span class="p">()</span>       
+    <span class="n">pose</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">pose</span>       
+    <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Retrieving current robot position from the `</span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">NODE_ROBOTS_CONDITION</span><span class="si">}</span><span class="s1">` node as: (</span><span class="si">{</span><span class="n">pose</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">pose</span><span class="o">.</span><span class="n">y</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">pose</span>
+        
+<div class="viewcode-block" id="RobotState"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.RobotState">[docs]</a><span class="k">class</span> <span class="nc">RobotState</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the state of the robot in terms of its position and battery status.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for the `RobotState` class.</span>
+
+<span class="sd">        Initializes the `_pose` attribute to `None`, `_battery_low` attribute to `False`,</span>
+<span class="sd">        and `_randomness` attribute to the value of `anm.PARAM_RANDOM_ACTIVE` parameter.</span>
+<span class="sd">        If `_randomness` is `True`, it initializes `_random_battery_time` attribute to the value of</span>
+<span class="sd">        `anm.PARAM_BATTERY_TIME` parameter. Then, it creates two services: `anm.SERVER_GET_POSE`</span>
+<span class="sd">        and `anm.SERVER_SET_POSE`, which can be used to get and set the robot&#39;s position, respectively.</span>
+<span class="sd">        It also starts a thread that continuously checks if the battery level is low or not and</span>
+<span class="sd">        publishes the battery status to the `anm.TOPIC_BATTERY_LOW` topic.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pose</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_battery_low</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_randomness</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">PARAM_RANDOM_ACTIVE</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_randomness</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_battery_time</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">PARAM_BATTERY_TIME</span><span class="p">,</span> <span class="p">[</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">])</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_GET_POSE</span><span class="p">,</span> <span class="n">GetPose</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_pose</span><span class="p">)</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">Service</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_SET_POSE</span><span class="p">,</span> <span class="n">SetPose</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_pose</span><span class="p">)</span>
+        <span class="n">th</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">is_battery_low_</span><span class="p">)</span>
+        <span class="n">th</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="n">log_msg</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Initialise node `</span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">NODE_ROBOTS_CONDITION</span><span class="si">}</span><span class="s1">` with services `</span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_GET_POSE</span><span class="si">}</span><span class="s1">` and &#39;</span>
+                   <span class="sa">f</span><span class="s1">&#39;`</span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_SET_POSE</span><span class="si">}</span><span class="s1">`, and topic </span><span class="si">{</span><span class="n">anm</span><span class="o">.</span><span class="n">TOPIC_BATTERY_LOW</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>        
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="n">log_msg</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+        
+<div class="viewcode-block" id="RobotState.set_pose"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.RobotState.set_pose">[docs]</a>    <span class="k">def</span> <span class="nf">set_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Service callback method for setting the robot&#39;s position.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            request: An object of `SetPoseRequest` type, which contains the new pose for the robot.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A response object of `SetPoseResponse` type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pose</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">pose</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">pose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">rospy</span><span class="o">.</span><span class="n">logerr</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="s1">&#39;Cannot set an unspecified robot position&#39;</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">SetPoseResponse</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="RobotState.get_pose"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.RobotState.get_pose">[docs]</a>    <span class="k">def</span> <span class="nf">get_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Service callback method for getting the robot&#39;s current position.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            request: An object of `GetPoseRequest` type, which contains no arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A response object of `GetPoseResponse` type, which contains the current pose of the robot.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pose</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">logerr</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">tag_log</span><span class="p">(</span><span class="s1">&#39;Cannot get an unspecified robot position&#39;</span><span class="p">,</span> <span class="n">LOG_TAG</span><span class="p">))</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">GetPoseResponse</span><span class="p">()</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">pose</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pose</span>
+        <span class="k">return</span> <span class="n">response</span></div>
+    
+<div class="viewcode-block" id="RobotState.is_battery_low_"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.RobotState.is_battery_low_">[docs]</a>    <span class="k">def</span> <span class="nf">is_battery_low_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A helper method that continuously checks if the battery level is low or not and</span>
+<span class="sd">        publishes the battery status to the `anm.TOPIC_BATTERY_LOW` topic.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">publisher</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">TOPIC_BATTERY_LOW</span><span class="p">,</span> <span class="n">Bool</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">latch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">battery_notifier_</span><span class="p">(</span><span class="n">publisher</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_randomness</span> <span class="k">else</span> <span class="kc">None</span></div>
+    
+<div class="viewcode-block" id="RobotState.battery_notifier_"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.RobotState.battery_notifier_">[docs]</a>    <span class="k">def</span> <span class="nf">battery_notifier_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">publisher</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A helper method that publishes the current battery status to the `publisher` object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            publisher: A `rospy.Publisher` object that is used to publish the battery status.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">delay</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="n">publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">Bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_battery_low</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_battery_low</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Robot battery is low after&quot;</span><span class="p">,</span><span class="n">delay</span><span class="p">,</span><span class="s2">&quot;seconds&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Robot battery is full&quot;</span><span class="p">,</span><span class="n">delay</span><span class="p">,</span><span class="s2">&quot;seconds&quot;</span><span class="p">)</span>
+            <span class="n">delay</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_battery_time</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_battery_time</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_randomness</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">delay</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_battery_low</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_battery_low</span> </div></div>
+             
+            
+<div class="viewcode-block" id="ChooseCorridor"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ChooseCorridor">[docs]</a><span class="k">class</span> <span class="nc">ChooseCorridor</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A state that chooses a random point in the environment and sends a planning goal to the planner action server to find a path to that point through via-points.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        interface_cortex (CortexInterface): The interface with the other nodes of the architecture.</span>
+<span class="sd">        ontology_cortex (CortexOntology): The ontology interface with knowledge of the environment and robot&#39;s current position.</span>
+
+<span class="sd">    Outputs:</span>
+<span class="sd">        robot_position (string): The robot&#39;s current position in the environment.</span>
+<span class="sd">        target (string): The target location for the robot to navigate to.</span>
+<span class="sd">        random_plan (list of Points): The via-points planned by the planner to reach the target location.</span>
+
+<span class="sd">    Outcome:</span>
+<span class="sd">        &#39;Robot_recharging&#39;: The robot&#39;s battery is low and it needs to go recharge.</span>
+<span class="sd">        &#39;corridor_chosen&#39;: The planner has finished computing a plan through via-points to reach the target location.</span>
+<span class="sd">        &#39;urgentroom_chosen&#39;: The target location is a room that requires an urgent transition.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_cortex</span><span class="p">,</span> <span class="n">ontology_cortex</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the ChooseCorridor state.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            interface_cortex (CortexInterface): The interface with the other nodes of the architecture.</span>
+<span class="sd">            ontology_cortex (CortexOntology): The ontology interface with knowledge of the environment and robot&#39;s current position.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span> <span class="o">=</span> <span class="n">interface_cortex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span> <span class="o">=</span> <span class="n">ontology_cortex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="s1">&#39;config/environment_size&#39;</span><span class="p">)</span>
+        <span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Robot_recharging&#39;</span><span class="p">,</span> <span class="s1">&#39;corridor_chosen&#39;</span><span class="p">,</span> <span class="s1">&#39;urgentroom_chosen&#39;</span><span class="p">],</span> <span class="n">output_keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;robot_position&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="s1">&#39;random_plan&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="ChooseCorridor.execute"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.ChooseCorridor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Executes the ChooseCorridor state.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            userdata (UserData): The data to be passed between states.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            string: The outcome of the state.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Define a random point to be reached through some via-points to be planned.</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">PlanGoal</span><span class="p">()</span>
+        <span class="n">goal</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">Point</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                             <span class="n">y</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">robot_position</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">choose_target</span><span class="p">()</span>
+        <span class="n">userdata</span><span class="o">.</span><span class="n">robot_position</span> <span class="o">=</span> <span class="n">robot_position</span>
+        <span class="n">userdata</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="c1"># Invoke the planner action server.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="c1"># Acquire the mutex to assure data consistencies with the ROS subscription threads managed by `self._cortex`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># If the battery is low, then cancel the control action server and take the `battery_low` transition.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span>  <span class="c1"># Higher priority</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">go_to_recharge</span><span class="p">(</span><span class="n">robot_position</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="s1">&#39;Robot_recharging&#39;</span>
+                <span class="c1"># If the target is a Rooom then planner cancels goals and transition TRANS_DECIDED_URGENT occurs</span>
+                <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;Room-R1&#39;</span> <span class="ow">or</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;Room-R2&#39;</span> <span class="ow">or</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;Room-R3&#39;</span> <span class="ow">or</span> <span class="n">target</span> <span class="o">==</span> <span class="s1">&#39;Room-R4&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                    <span class="k">return</span> <span class="s1">&#39;urgentroom_chosen&#39;</span>
+                <span class="c1"># If the planner finishes its computation, then take the TRANS_DECIDED_CORRIDOR transition</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">is_done</span><span class="p">():</span>
+                    <span class="n">userdata</span><span class="o">.</span><span class="n">random_plan</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">via_points</span>
+                    <span class="k">return</span> <span class="s1">&#39;corridor_chosen&#39;</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># Release the mutex to unblock the `self._cortex` subscription threads if they are waiting.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="c1"># Wait for a reasonably small amount of time to allow `self._cortex` processing stimulus (eventually).</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+           
+
+
+
+<div class="viewcode-block" id="Navigationway"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.Navigationway">[docs]</a><span class="k">class</span> <span class="nc">Navigationway</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A SMACH state for moving the robot along a planned path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        interface_cortex (CortexInterface): An instance of the CortexInterface class.</span>
+<span class="sd">        ontology_cortex (OntologyCortex): An instance of the OntologyCortex class.</span>
+
+<span class="sd">    Input keys:</span>
+<span class="sd">        random_plan (list): A list of PoseStamped messages representing the planned path.</span>
+<span class="sd">        robot_position (PoseStamped): The current pose of the robot.</span>
+<span class="sd">        target (str): The target location.</span>
+
+<span class="sd">    Output keys:</span>
+<span class="sd">        robot_position (PoseStamped): The new pose of the robot.</span>
+
+<span class="sd">    Outcomes:</span>
+<span class="sd">        Robot_recharging: The robot&#39;s battery is low and it needs to recharge.</span>
+<span class="sd">        robot_moved_corridor: The robot has reached its target location.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_cortex</span><span class="p">,</span> <span class="n">ontology_cortex</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the Navigationway state.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            interface_cortex (CortexInterface): An instance of the CortexInterface class.</span>
+<span class="sd">            ontology_cortex (OntologyCortex): An instance of the OntologyCortex class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Navigationway</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Robot_recharging&#39;</span><span class="p">,</span> <span class="s1">&#39;robot_moved_corridor&#39;</span><span class="p">],</span> 
+            <span class="n">input_keys</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;random_plan&quot;</span><span class="p">,</span><span class="s1">&#39;robot_position&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">],</span> 
+            <span class="n">output_keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;robot_position&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span> <span class="o">=</span> <span class="n">interface_cortex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span> <span class="o">=</span> <span class="n">ontology_cortex</span>
+
+<div class="viewcode-block" id="Navigationway.execute"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.Navigationway.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute the Navigationway state.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            userdata (UserData): An object that contains input and output keys.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: The outcome of the state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plan</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">random_plan</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">ControlGoal</span><span class="p">(</span><span class="n">via_points</span><span class="o">=</span><span class="n">plan</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">go_to_recharge</span><span class="p">(</span><span class="n">userdata</span><span class="o">.</span><span class="n">robot_position</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="s1">&#39;Robot_recharging&#39;</span>
+                
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">is_done</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">move_location</span><span class="p">(</span><span class="n">userdata</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="n">userdata</span><span class="o">.</span><span class="n">robot_position</span><span class="p">)</span>
+                    
+                    <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">MONITOR_TIME</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="s1">&#39;robot_moved_corridor&#39;</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="emergency"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.emergency">[docs]</a><span class="k">class</span> <span class="nc">emergency</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This state handles emergency situations in the robot navigation system. It generates a random goal to be reached </span>
+<span class="sd">    through some via-points planned by an action server. If the battery is low or the target is a corridor, the planner </span>
+<span class="sd">    goal is cancelled and the appropriate transition is taken. When the controller finishes its computation, the </span>
+<span class="sd">    &#39;urgentroom_chosen&#39; transition is taken.</span>
+<span class="sd">    </span>
+<span class="sd">    Required parameters:</span>
+<span class="sd">    - interface_cortex: an object that provides interfaces with other nodes of the architecture</span>
+<span class="sd">    - ontology_cortex: an object that provides the robot&#39;s knowledge of the environment</span>
+<span class="sd">    </span>
+<span class="sd">    Optional parameters:</span>
+<span class="sd">    - None</span>
+<span class="sd">    </span>
+<span class="sd">    Input keys:</span>
+<span class="sd">    - None</span>
+<span class="sd">    </span>
+<span class="sd">    Output keys:</span>
+<span class="sd">    - robot_position: the robot&#39;s current position</span>
+<span class="sd">    - target: the target to be reached</span>
+<span class="sd">    - random_plan: the planned via-points to reach the random goal</span>
+<span class="sd">    </span>
+<span class="sd">    Outcomes:</span>
+<span class="sd">    - &#39;Robot_recharging&#39;: if the battery is low and the robot needs to go to the charging station</span>
+<span class="sd">    - &#39;urgentroom_chosen&#39;: when the controller finishes its computation</span>
+<span class="sd">    - &#39;corridor_chosen&#39;: if the target is a corridor and the robot needs to go there</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_cortex</span><span class="p">,</span> <span class="n">ontology_cortex</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor for the emergency state.</span>
+<span class="sd">        </span>
+<span class="sd">        @param interface_cortex: an object that provides interfaces with other nodes of the architecture</span>
+<span class="sd">        @type interface_cortex: object</span>
+<span class="sd">        </span>
+<span class="sd">        @param ontology_cortex: an object that provides the robot&#39;s knowledge of the environment</span>
+<span class="sd">        @type ontology_cortex: object</span>
+<span class="sd">        </span>
+<span class="sd">        @return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">emergency</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Robot_recharging&#39;</span><span class="p">,</span> <span class="s1">&#39;urgentroom_chosen&#39;</span><span class="p">,</span> <span class="s1">&#39;corridor_chosen&#39;</span><span class="p">],</span>
+            <span class="n">output_keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;robot_position&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="s1">&#39;random_plan&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Get a reference to the interfaces with the other nodes of the architecture.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span> <span class="o">=</span> <span class="n">interface_cortex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span> <span class="o">=</span> <span class="n">ontology_cortex</span>
+        <span class="c1"># Get the environment size from ROS parameters.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="s1">&#39;config/environment_size&#39;</span><span class="p">)</span>
+        
+
+<div class="viewcode-block" id="emergency.execute"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.emergency.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute function for the emergency state.</span>
+<span class="sd">        </span>
+<span class="sd">        @param userdata: data input/output that serves as a communication channel between states</span>
+<span class="sd">        @type userdata: UserData</span>
+<span class="sd">        </span>
+<span class="sd">        @return: the outcome of the state machine (one of the defined outcomes)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Define a random point to be reached through some via-points to be planned.</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">PlanGoal</span><span class="p">()</span>
+        <span class="n">goal</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">Point</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                            <span class="n">y</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">environment_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">robot_position</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">choose_target</span><span class="p">()</span>
+        <span class="n">userdata</span><span class="o">.</span><span class="n">robot_position</span> <span class="o">=</span> <span class="n">robot_position</span>
+        <span class="n">userdata</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="c1"># Invoke the planner action server.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="c1"># Acquire the mutex to assure data consistencies with the ROS subscription threads managed by `self._cortex`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># If the battery is low, then cancel the control action server and take the `battery_low` transition.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span>  <span class="c1"># Higher priority</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span><span class="o">.</span><span class="n">go_to_recharge</span><span class="p">(</span><span class="n">robot_position</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="s1">&#39;Robot_recharging&#39;</span>
+                <span class="c1">#if the target is a corridor then planner cancels goal and transition TRANS_DECIDED_CORRIDOR occurs</span>
+                <span class="k">if</span>  <span class="n">target</span><span class="o">==</span><span class="s1">&#39;Room-C1&#39;</span> <span class="ow">or</span> <span class="n">target</span><span class="o">==</span><span class="s1">&#39;Room-C2&#39;</span> <span class="ow">or</span> <span class="n">target</span><span class="o">==</span><span class="s1">&#39;Room-E&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                    <span class="k">return</span> <span class="s1">&#39;corridor_chosen&#39;</span>
+                <span class="c1"># If the controller finishes its computation, then take the `went_random_pose` transition, which is related to the `repeat` transition.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">is_done</span><span class="p">():</span>
+                    <span class="n">userdata</span><span class="o">.</span><span class="n">random_plan</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">planner_client</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">via_points</span>
+                    <span class="k">return</span> <span class="s1">&#39;urgentroom_chosen&#39;</span>
+
+
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># Release the mutex to unblock the `self._cortex` subscription threads if they are waiting.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="c1"># Wait for a reasonably small amount of time to allow `self._cortex` processing stimulus (eventually).</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+
+
+
+<div class="viewcode-block" id="emergencylocation"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.emergencylocation">[docs]</a><span class="k">class</span> <span class="nc">emergencylocation</span><span class="p">(</span><span class="n">smach</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class defines a state in a SMACH state machine that sends a robot to a target location using a given plan. </span>
+<span class="sd">    If the robot&#39;s battery is low, the state will cancel the plan and send the robot to recharge. </span>
+<span class="sd">    </span>
+<span class="sd">    :param interface_cortex: An instance of the interface_cortex class used to communicate with the robot&#39;s control system.</span>
+<span class="sd">    :type interface_cortex: interface_cortex</span>
+<span class="sd">    </span>
+<span class="sd">    :param ontology_cortex: An instance of the ontology_cortex class used to interact with the robot&#39;s knowledge base.</span>
+<span class="sd">    :type ontology_cortex: ontology_cortex</span>
+<span class="sd">    </span>
+<span class="sd">    :return: The outcome of the state. Either &#39;Robot_recharging&#39; if the robot needs to recharge, or &#39;robot_moved_urgent&#39; if the robot reaches the target.</span>
+<span class="sd">    </span>
+<span class="sd">    :raises: Any exceptions thrown by the underlying code.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_cortex</span><span class="p">,</span> <span class="n">ontology_cortex</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the state.</span>
+<span class="sd">        </span>
+<span class="sd">        :param interface_cortex: An instance of the interface_cortex class used to communicate with the robot&#39;s control system.</span>
+<span class="sd">        :type interface_cortex: interface_cortex</span>
+<span class="sd">        </span>
+<span class="sd">        :param ontology_cortex: An instance of the ontology_cortex class used to interact with the robot&#39;s knowledge base.</span>
+<span class="sd">        :type ontology_cortex: ontology_cortex</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">emergencylocation</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Robot_recharging&#39;</span><span class="p">,</span> <span class="s1">&#39;robot_moved_urgent&#39;</span><span class="p">],</span>
+            <span class="n">input_keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;random_plan&#39;</span><span class="p">,</span> <span class="s1">&#39;robot_position&#39;</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">],</span>
+            <span class="n">output_keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;crobot_position&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interface_cortex</span> <span class="o">=</span> <span class="n">interface_cortex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ontology_cortex</span> <span class="o">=</span> <span class="n">ontology_cortex</span>
+        
+<div class="viewcode-block" id="emergencylocation.execute"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.emergencylocation.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute the state.</span>
+<span class="sd">        </span>
+<span class="sd">        :param userdata: The user data provided to the state.</span>
+<span class="sd">        :type userdata: smach.UserData</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The outcome of the state. Either &#39;Robot_recharging&#39; if the robot needs to recharge, or &#39;robot_moved_urgent&#39; if the robot reaches the target.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plan</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">random_plan</span>
+        <span class="n">goal</span> <span class="o">=</span> <span class="n">ControlGoal</span><span class="p">(</span><span class="n">via_points</span><span class="o">=</span><span class="n">plan</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interface_cortex</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+        <span class="n">robot_position</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">robot_position</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">userdata</span><span class="o">.</span><span class="n">target</span>
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface_cortex</span><span class="o">.</span><span class="n">mutex</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface_cortex</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">interface_cortex</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">cancel_goals</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ontology_cortex</span><span class="o">.</span><span class="n">go_to_recharge</span><span class="p">(</span><span class="n">robot_position</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="s1">&#39;Robot_recharging&#39;</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface_cortex</span><span class="o">.</span><span class="n">controller_client</span><span class="o">.</span><span class="n">is_done</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ontology_cortex</span><span class="o">.</span><span class="n">move_location</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">robot_position</span><span class="p">)</span>
+                    <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">MONITOR_TIME</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="s1">&#39;robot_moved_urgent&#39;</span>
+
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Recharging"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.Recharging">[docs]</a><span class="k">class</span> <span class="nc">Recharging</span><span class="p">(</span><span class="n">State</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class defines a state in a SMACH state machine that sends a robot to recharge if its battery is low. </span>
+<span class="sd">    </span>
+<span class="sd">    :param interface_cortex: An instance of the interface_cortex class used to communicate with the robot&#39;s control system.</span>
+<span class="sd">    :type interface_cortex: interface_cortex</span>
+<span class="sd">    </span>
+<span class="sd">    :param ontology_cortex: An instance of the ontology_cortex class used to interact with the robot&#39;s knowledge base.</span>
+<span class="sd">    :type ontology_cortex: ontology_cortex</span>
+<span class="sd">    </span>
+<span class="sd">    :return: The outcome of the state, which is always &#39;recharged&#39;.</span>
+<span class="sd">    </span>
+<span class="sd">    :raises: Any exceptions thrown by the underlying code.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_cortex</span><span class="p">,</span> <span class="n">ontology_cortex</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the state.</span>
+<span class="sd">        </span>
+<span class="sd">        :param interface_cortex: An instance of the interface_cortex class used to communicate with the robot&#39;s control system.</span>
+<span class="sd">        :type interface_cortex: interface_cortex</span>
+<span class="sd">        </span>
+<span class="sd">        :param ontology_cortex: An instance of the ontology_cortex class used to interact with the robot&#39;s knowledge base.</span>
+<span class="sd">        :type ontology_cortex: ontology_cortex</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">outcomes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;recharged&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span> <span class="o">=</span> <span class="n">interface_cortex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ontology</span> <span class="o">=</span> <span class="n">ontology_cortex</span>
+
+<div class="viewcode-block" id="Recharging.execute"><a class="viewcode-back" href="../docs/robot_brain.html#robot_brain.Recharging.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">userdata</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute the state.</span>
+<span class="sd">        </span>
+<span class="sd">        :param userdata: The user data provided to the state.</span>
+<span class="sd">        :type userdata: smach.UserData</span>
+<span class="sd">        </span>
+<span class="sd">        :return: The outcome of the state, which is always &#39;recharged&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">is_battery_low</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">reset_states</span><span class="p">()</span>
+                    <span class="k">return</span> <span class="s1">&#39;recharged&#39;</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cortex</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">LOOP_SLEEP_TIME</span><span class="p">)</span></div></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">rospy</span><span class="o">.</span><span class="n">init_node</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">NODE_SURVILANCE_BRAIN</span><span class="p">,</span> <span class="n">log_level</span><span class="o">=</span><span class="n">rospy</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">ControllingAction</span><span class="p">()</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">PlanningAction</span><span class="p">()</span>
+    <span class="c1"># Instantiate the node manager class</span>
+    <span class="n">RobotState</span><span class="p">()</span>
+
+    <span class="c1"># Define the cortex</span>
+    <span class="n">cortex</span> <span class="o">=</span> <span class="n">sensory2</span><span class="p">()</span>
+
+    <span class="c1"># Initialize robot position</span>
+    <span class="n">robot_pose_param</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">get_param</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">PARAM_INITIAL_POSE</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">cortex</span><span class="o">.</span><span class="n">init_robot_pose</span><span class="p">(</span><span class="n">Point</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">robot_pose_param</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="n">robot_pose_param</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="n">rospy</span><span class="o">.</span><span class="n">spin</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, yeshwanth guru krishnakumar.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

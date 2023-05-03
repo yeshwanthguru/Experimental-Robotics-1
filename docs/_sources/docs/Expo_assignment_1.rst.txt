@@ -1,0 +1,21 @@
+Expo\_assignment\_1 package
+===========================
+
+Submodules
+----------
+
+Expo\_assignment\_1.architecture\_name\_mapper module
+-----------------------------------------------------
+
+.. automodule:: Expo_assignment_1.architecture_name_mapper
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: Expo_assignment_1
+   :members:
+   :undoc-members:
+   :show-inheritance:

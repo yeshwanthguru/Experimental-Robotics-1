@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>robot_brain2 &mdash; expo_assignment_1 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            expo_assignment_1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">expo_assignment_1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">robot_brain2</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for robot_brain2</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">.. module:: robot_brain2.py</span>
+<span class="sd">   :platform: Unix</span>
+<span class="sd">   :synopsis: Script for the initialization of the robots required data.  </span>
+<span class="sd">.. moduleauthor:: yeshwanth guru krishnakumar</span>
+
+<span class="sd">This script defines a class ActionClientcortex that implements a SimpleActionClient to send and cancel goals to a specified service. It also defines a class sensory1 that acquires locations from a database using ArmorClient, determines the robot&#39;s current location, and chooses a target location based on the robot&#39;s position, reachable locations, and urgency.</span>
+
+<span class="sd">In the working scenario, the robot uses sensory1 to determine its current location and choose a target location. Then, the ActionClientcortex is used to send a control action to move the robot to the target location. The robot moves to the target location, and the process repeats until a stopping condition is met.</span>
+<span class="sd"> </span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">rospy</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">std_msgs.msg</span> <span class="kn">import</span> <span class="n">String</span>
+<span class="kn">from</span> <span class="nn">actionlib</span> <span class="kn">import</span> <span class="n">SimpleActionClient</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Lock</span>
+<span class="kn">from</span> <span class="nn">std_msgs.msg</span> <span class="kn">import</span> <span class="n">Bool</span>
+<span class="kn">from</span> <span class="nn">expo_assignment_1.msg</span> <span class="kn">import</span> <span class="n">PlanAction</span><span class="p">,</span> <span class="n">ControlAction</span>
+<span class="kn">from</span> <span class="nn">expo_assignment_1.srv</span> <span class="kn">import</span> <span class="n">SetPose</span>
+
+<span class="kn">from</span> <span class="nn">armor_api.armor_client</span> <span class="kn">import</span> <span class="n">ArmorClient</span>
+<span class="kn">from</span> <span class="nn">Expo_assignment_1</span> <span class="kn">import</span> <span class="n">architecture_name_mapper</span> <span class="k">as</span> <span class="n">anm</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">ArmorClient</span><span class="p">(</span><span class="s2">&quot;armor_client&quot;</span><span class="p">,</span> <span class="s2">&quot;survilance_ontology&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ActionClientcortex"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.ActionClientcortex">[docs]</a><span class="k">class</span> <span class="nc">ActionClientcortex</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A simple wrapper for ROS action client to send and receive goals.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        service_name (str): The name of the action service to connect to.</span>
+<span class="sd">        action_type (Any): The type of the action message.</span>
+<span class="sd">        done_callback (Optional[Callable[[int, Any]], None]]): The callback function to be called when the action is done.</span>
+<span class="sd">            It takes two arguments: the status code (int) and the result (Any). Defaults to None.</span>
+<span class="sd">        feedback_callback (Optional[Callable[[Any], None]]): The callback function to be called when there is feedback from the action.</span>
+<span class="sd">            It takes one argument: the feedback message (Any). Defaults to None.</span>
+<span class="sd">        mutex (Optional[Lock]): The mutex to lock when accessing class variables. Defaults to None.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        _is_running (bool): A boolean value indicating whether the action is currently running.</span>
+<span class="sd">        _is_done (bool): A boolean value indicating whether the action is done.</span>
+<span class="sd">        _results (Any): The results of the action.</span>
+<span class="sd">        _service_name (str): The name of the action service to connect to.</span>
+<span class="sd">        _mutex (Lock): The mutex to lock when accessing class variables.</span>
+<span class="sd">        _client (SimpleActionClient): The SimpleActionClient object used to communicate with the action service.</span>
+<span class="sd">        _external_done_cb (Optional[Callable[[int, Any], None]]): The external done callback function.</span>
+<span class="sd">        _external_feedback_cb (Optional[Callable[[Any], None]]): The external feedback callback function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">action_type</span><span class="p">,</span> <span class="n">done_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">feedback_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mutex</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the ActionClientcortex object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            service_name (str): The name of the action service to connect to.</span>
+<span class="sd">            action_type (Any): The type of the action message.</span>
+<span class="sd">            done_callback (Optional[Callable[[int, Any]], None]]): The callback function to be called when the action is done.</span>
+<span class="sd">                It takes two arguments: the status code (int) and the result (Any). Defaults to None.</span>
+<span class="sd">            feedback_callback (Optional[Callable[[Any], None]]): The callback function to be called when there is feedback from the action.</span>
+<span class="sd">                It takes one argument: the feedback message (Any). Defaults to None.</span>
+<span class="sd">            mutex (Optional[Lock]): The mutex to lock when accessing class variables. Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_running</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_service_name</span> <span class="o">=</span> <span class="n">service_name</span>
+        <span class="k">if</span> <span class="n">mutex</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mutex</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mutex</span> <span class="o">=</span> <span class="n">mutex</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">SimpleActionClient</span><span class="p">(</span><span class="n">service_name</span><span class="p">,</span> <span class="n">action_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_external_done_cb</span> <span class="o">=</span> <span class="n">done_callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_external_feedback_cb</span> <span class="o">=</span> <span class="n">feedback_callback</span>        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ActionClientcortex.send_goal"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.ActionClientcortex.send_goal">[docs]</a>    <span class="k">def</span> <span class="nf">send_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends a goal to the action service.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            goal (Any): The goal message to send.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_running</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">send_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">,</span>
+                                   <span class="n">done_cb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">done_callback_</span><span class="p">,</span>
+                                   <span class="n">feedback_cb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feedback_callback_</span><span class="p">)</span>            
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_running</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_results</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">logwarn</span><span class="p">(</span><span class="s2">&quot;Cannot send a new goal, cancel the current request first&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ActionClientcortex.cancel_goals"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.ActionClientcortex.cancel_goals">[docs]</a>    <span class="k">def</span> <span class="nf">cancel_goals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cancels all goals sent to the action service.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_running</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">cancel_all_goals</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset_client_states</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">logwarn</span><span class="p">(</span><span class="s2">&quot;Cannot cancel a not running service&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ActionClientcortex.reset_client_states"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.ActionClientcortex.reset_client_states">[docs]</a>    <span class="k">def</span> <span class="nf">reset_client_states</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the client states.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_running</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="ActionClientcortex.feedback_callback_"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.ActionClientcortex.feedback_callback_">[docs]</a>    <span class="k">def</span> <span class="nf">feedback_callback_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feedback</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The internal feedback callback function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            feedback (Any): The feedback message received from the action service.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_external_feedback_cb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_external_feedback_cb</span><span class="p">(</span><span class="n">feedback</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ActionClientcortex.done_callback_"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.ActionClientcortex.done_callback_">[docs]</a>    <span class="k">def</span> <span class="nf">done_callback_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The internal done callback function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            status (int): The status code of the action.</span>
+<span class="sd">            results (Any): The result message received from the action service.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_running</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_results</span> <span class="o">=</span> <span class="n">results</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_external_done_cb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_external_done_cb</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">results</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ActionClientcortex.is_done"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.ActionClientcortex.is_done">[docs]</a>    <span class="k">def</span> <span class="nf">is_done</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a boolean value indicating whether the action is done.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the action is done, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span></div>
+
+<div class="viewcode-block" id="ActionClientcortex.is_running"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.ActionClientcortex.is_running">[docs]</a>    <span class="k">def</span> <span class="nf">is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a boolean value indicating whether the action is currently running.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A boolean value indicating whether the action is currently running.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_running</span></div>
+    
+<div class="viewcode-block" id="ActionClientcortex.get_results"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.ActionClientcortex.get_results">[docs]</a>    <span class="k">def</span> <span class="nf">get_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the results of the action if it has completed, otherwise logs an error message.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The results of the action if it has completed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_results</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">logerr</span><span class="p">(</span><span class="s2">&quot;Cannot get result, service not done yet&quot;</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="sensory1"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory1">[docs]</a><span class="k">class</span> <span class="nc">sensory1</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>       
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot</span> <span class="o">=</span> <span class="s2">&quot;Robot1&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">charging_room</span> <span class="o">=</span> <span class="s2">&quot;Room-E&quot;</span>       
+        <span class="bp">self</span><span class="o">.</span><span class="n">urgent</span> <span class="o">=</span> <span class="s1">&#39;urgent&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">corridor</span> <span class="o">=</span> <span class="s1">&#39;corridor&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_position</span> <span class="o">=</span> <span class="s1">&#39;robot_position&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reachable_locations</span> <span class="o">=</span> <span class="s1">&#39;reachable_locations&#39;</span> 
+
+<div class="viewcode-block" id="sensory1.list_formatter"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory1.list_formatter">[docs]</a>    <span class="k">def</span> <span class="nf">list_formatter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">old_location</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Formats a list of locations by extracting the substring between the start and end characters.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            old_location (list): A list of strings to be formatted.</span>
+<span class="sd">            start (str): The starting character of the substring to be extracted.</span>
+<span class="sd">            end (str): The ending character of the substring to be extracted.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            list: A list of formatted strings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_location</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">old_location</span><span class="p">:</span>
+            <span class="n">new_location</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="s1">&#39;(.+?)&#39;</span> <span class="o">+</span> <span class="n">end</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">new_location</span>	</div>
+
+<div class="viewcode-block" id="sensory1.location_acquire"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory1.location_acquire">[docs]</a>    <span class="k">def</span> <span class="nf">location_acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Acquires information about the robot&#39;s current location, reachable locations, corridors, or urgent rooms.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            location (str): A string indicating the type of location information to acquire.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            list: A list of locations meeting the specified criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">location</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">corridor</span><span class="p">:</span>
+            <span class="n">corridors_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_formatter</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">ind_b2_class</span><span class="p">(</span><span class="s1">&#39;CORRIDOR&#39;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">corridors_list</span>
+        <span class="k">elif</span> <span class="n">location</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">urgent</span><span class="p">:</span>
+            <span class="n">urgent_rooms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_formatter</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">ind_b2_class</span><span class="p">(</span><span class="s1">&#39;URGENT&#39;</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">urgent_rooms</span>
+        <span class="k">elif</span> <span class="n">location</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">robot_position</span><span class="p">:</span>
+            <span class="n">current_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">list_formatter</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">robot</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">current_position</span>
+        <span class="k">elif</span> <span class="n">location</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">reachable_locations</span><span class="p">:</span>
+            <span class="n">reachable_destinations</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">list_formatter</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;canReach&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">robot</span><span class="p">),</span> <span class="s1">&#39;#&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">reachable_destinations</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="sensory1.get_coordinate"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory1.get_coordinate">[docs]</a>    <span class="k">def</span> <span class="nf">get_coordinate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the coordinate of a given location.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            location (str): The location whose coordinate to retrieve.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: A tuple containing the x and y coordinates of the specified location.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">coordinate_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;Room-E&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="s1">&#39;Room-C1&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="s1">&#39;Room-C2&#39;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="s1">&#39;Room-R1&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="s1">&#39;Room-R2&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="s1">&#39;Room-R3&#39;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="s1">&#39;Room-R4&#39;</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">coordinate_dict</span><span class="p">[</span><span class="n">location</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="sensory1.choose_target"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory1.choose_target">[docs]</a>    <span class="k">def</span> <span class="nf">choose_target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Chooses a target location for the robot to move to based on its current position and reachable locations.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: A tuple containing the robot&#39;s current position and its target destination.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">corridors_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">location_acquire</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corridor</span><span class="p">)</span>
+        <span class="n">current_position</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">location_acquire</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">robot_position</span><span class="p">)</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current position of robot is: [</span><span class="si">{</span><span class="n">current_position</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+        <span class="n">coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_coordinate</span><span class="p">(</span><span class="n">current_position</span><span class="p">)</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Coordinate is: </span><span class="si">{</span><span class="n">coordinate</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">possible_destinations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">location_acquire</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reachable_locations</span><span class="p">)</span>       
+        <span class="n">urgent_rooms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">location_acquire</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">urgent</span><span class="p">)</span>
+        <span class="n">ReachableUrgent_room</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">possible_destinations</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">urgent_rooms</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ReachableUrgent_room</span><span class="p">:</span>
+            <span class="n">ReachableCorridor_room</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">possible_destinations</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">corridors_list</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ReachableCorridor_room</span><span class="p">:</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">possible_destinations</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">ReachableCorridor_room</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># save the first element of the list as the oldest timestamp</span>
+            <span class="n">oldest</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;visitedAt&#39;</span><span class="p">,</span> <span class="n">ReachableUrgent_room</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">oldest</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_formatter</span><span class="p">(</span><span class="n">oldest</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ReachableUrgent_room</span><span class="p">)):</span>                
+                <span class="n">choice_last_visit</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;visitedAt&#39;</span><span class="p">,</span> <span class="n">ReachableUrgent_room</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">choice_last_visit</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_formatter</span><span class="p">(</span><span class="n">choice_last_visit</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">choice_last_visit</span> <span class="o">&lt;=</span> <span class="n">oldest</span><span class="p">:</span>
+                    <span class="n">target</span> <span class="o">=</span> <span class="n">ReachableUrgent_room</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Target to be reached </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">current_position</span><span class="p">,</span> <span class="n">target</span></div>
+<div class="viewcode-block" id="sensory1.move_location"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory1.move_location">[docs]</a>    <span class="k">def</span> <span class="nf">move_location</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">current_position</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Moves the robot to a new location.</span>
+
+<span class="sd">        Publishes the target and current position to their respective topics, updates the robot&#39;s location</span>
+<span class="sd">         in the knowledge base, and synchronizes the changes with the buffered reasoner.</span>
+
+<span class="sd">        :param target: The target location for the robot.</span>
+<span class="sd">        :param current_position: The current position of the robot.</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Publish target</span>
+        <span class="n">target_pub</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="s1">&#39;target_topic&#39;</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">target_pub</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+        <span class="c1"># Publish current_position</span>
+        <span class="n">pos_pub</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="s1">&#39;current_position_topic&#39;</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">pos_pub</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">current_position</span><span class="p">)</span>
+        
+        <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">robot</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">current_position</span><span class="p">)</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Robot in </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> and monitoring&quot;</span><span class="p">)</span>
+        <span class="n">last_change</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;now&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">robot</span><span class="p">)</span>
+        <span class="n">last_change</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_formatter</span><span class="p">(</span><span class="n">last_change</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;now&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">robot</span><span class="p">,</span> <span class="s1">&#39;Long&#39;</span><span class="p">,</span> <span class="n">current_time</span><span class="p">,</span> <span class="n">last_change</span><span class="p">)</span>
+        <span class="n">corridors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">location_acquire</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corridor</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">corridors</span><span class="p">:</span>
+            <span class="n">last_visit</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;visitedAt&#39;</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+            <span class="n">last_visit</span> <span class="o">=</span>  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list_formatter</span><span class="p">(</span><span class="n">last_visit</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_dataprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;visitedAt&#39;</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="s1">&#39;Long&#39;</span><span class="p">,</span> <span class="n">current_time</span><span class="p">,</span> <span class="n">last_visit</span><span class="p">)</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">apply_buffered_changes</span><span class="p">()</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">sync_buffered_reasoner</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="sensory1.go_to_recharge"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory1.go_to_recharge">[docs]</a>    <span class="k">def</span> <span class="nf">go_to_recharge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">robot_location</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Moves the robot to the charging room for recharge.</span>
+
+<span class="sd">        Uses the `client.manipulation.replace_objectprop_b2_ind` method to update the `isIn` property</span>
+<span class="sd">        of the robot to the charging room, and then synchronizes the changes with the buffered reasoner.</span>
+
+<span class="sd">        :param robot_location: The current location of the robot.</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="s2">&quot;Robot&#39;s Battery is low and going to recharge room for recharge &quot;</span><span class="p">)</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">manipulation</span><span class="o">.</span><span class="n">replace_objectprop_b2_ind</span><span class="p">(</span><span class="s1">&#39;isIn&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">robot</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">charging_room</span><span class="p">,</span> <span class="n">robot_location</span><span class="p">)</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">sync_buffered_reasoner</span><span class="p">()</span></div></div>
+
+<div class="viewcode-block" id="sensory2"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory2">[docs]</a><span class="k">class</span> <span class="nc">sensory2</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class for managing sensor data and robot state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor method for the `sensory2` class.</span>
+
+<span class="sd">        Initializes class attributes and subscribes to relevant ROS topics.</span>
+
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mutex</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_states</span><span class="p">()</span>
+
+        <span class="n">rospy</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">TOPIC_BATTERY_LOW</span><span class="p">,</span> <span class="n">Bool</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">battery_callback_</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">planner_client</span> <span class="o">=</span> <span class="n">ActionClientcortex</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">ACTION_PLANNER</span><span class="p">,</span> <span class="n">PlanAction</span><span class="p">,</span> <span class="n">mutex</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mutex</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">controller_client</span> <span class="o">=</span> <span class="n">ActionClientcortex</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">ACTION_CONTROLLER</span><span class="p">,</span> <span class="n">ControlAction</span><span class="p">,</span> <span class="n">mutex</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mutex</span><span class="p">)</span>
+
+<div class="viewcode-block" id="sensory2.reset_states"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory2.reset_states">[docs]</a>    <span class="k">def</span> <span class="nf">reset_states</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the class attributes to their initial state.</span>
+
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_battery_low</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="sensory2.battery_callback_"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory2.battery_callback_">[docs]</a>    <span class="k">def</span> <span class="nf">battery_callback_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">Bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Callback function for the `anm.TOPIC_BATTERY_LOW` topic.</span>
+
+<span class="sd">        Updates the `_battery_low` attribute with the received message data.</span>
+
+<span class="sd">        :param msg: A ROS `Bool` message containing the battery status.</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_battery_low</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mutex</span><span class="o">.</span><span class="n">release</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="sensory2.is_battery_low"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory2.is_battery_low">[docs]</a>    <span class="k">def</span> <span class="nf">is_battery_low</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the current battery status.</span>
+
+<span class="sd">        :return: A boolean indicating whether the battery is low or not.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_battery_low</span></div>
+
+<div class="viewcode-block" id="sensory2.init_robot_pose"><a class="viewcode-back" href="../docs/robot_brain2.html#robot_brain2.sensory2.init_robot_pose">[docs]</a>    <span class="k">def</span> <span class="nf">init_robot_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the robot&#39;s position using a ROS service call.</span>
+
+<span class="sd">        :param point: A `geometry_msgs.Point` message containing the initial robot position.</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rospy</span><span class="o">.</span><span class="n">wait_for_service</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_SET_POSE</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">service</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceProxy</span><span class="p">(</span><span class="n">anm</span><span class="o">.</span><span class="n">SERVER_SET_POSE</span><span class="p">,</span> <span class="n">SetPose</span><span class="p">)</span>
+            <span class="n">service</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">loginfo</span><span class="p">(</span><span class="s2">&quot;Setting initial robot position&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">rospy</span><span class="o">.</span><span class="n">ServiceException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">rospy</span><span class="o">.</span><span class="n">logerr</span><span class="p">(</span><span class="s2">&quot;Cannot set current robot position: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>   
+    <span class="n">rospy</span><span class="o">.</span><span class="n">init_node</span><span class="p">(</span><span class="s1">&#39;interface_cortex&#39;</span><span class="p">,</span> <span class="n">anonymous</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">interface_cortex</span> <span class="o">=</span> <span class="n">sensory2</span><span class="p">()</span>
+    <span class="n">ontology</span> <span class="o">=</span> <span class="n">sensory1</span><span class="p">()</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">rospy</span><span class="o">.</span><span class="n">is_shutdown</span><span class="p">():</span>
+        <span class="k">pass</span>
+
+    <span class="n">rospy</span><span class="o">.</span><span class="n">signal_shutdown</span><span class="p">(</span><span class="s1">&#39;Node shut down&#39;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, yeshwanth guru krishnakumar.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

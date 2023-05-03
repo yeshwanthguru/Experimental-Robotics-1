@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>robot_state_machine module &mdash; expo_assignment_1 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            expo_assignment_1
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">robot_state_machine module</a><ul>
+<li><a class="reference internal" href="#robot_state_machine.LoadEnvironment"><code class="docutils literal notranslate"><span class="pre">LoadEnvironment</span></code></a><ul>
+<li><a class="reference internal" href="#robot_state_machine.LoadEnvironment.execute"><code class="docutils literal notranslate"><span class="pre">LoadEnvironment.execute()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#robot_state_machine.load_topology_plot"><code class="docutils literal notranslate"><span class="pre">load_topology_plot()</span></code></a></li>
+<li><a class="reference internal" href="#robot_state_machine.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">expo_assignment_1</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">robot_state_machine module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/docs/robot_state_machine.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-robot_state_machine">
+<span id="robot-state-machine-module"></span><h1>robot_state_machine module<a class="headerlink" href="#module-robot_state_machine" title="Permalink to this heading"></a></h1>
+<span class="target" id="module-robot_state_machine.py"></span><p>This script is a ROS-based state machine for a robot to navigate through a topological map of an environment. It loads the ontology map of the environment, initializes the robot’s sensors, and defines a state machine with three states: Load_Environment, Normal_mode, and Emergency_mode.</p>
+<p>In Normal_mode state, the robot chooses the next corridor to move or switch to Emergency_mode. In Navigationway state, the robot navigates through the selected corridor. In Emergency_mode state, the robot navigates to the nearest emergency location.</p>
+<p>The robot’s sensors are instantiated in the main() function, and the state machine is initialized using the StateMachine() class. The transitions between states are defined using the add() and add_transition() methods of the StateMachine class. The script uses the ArmorClient library to manipulate the ontology map of the environment.</p>
+<p>The script also defines a function to load the ontology map from a file and apply buffered changes to the ontology, and a function to save the ontology file when the script ends. The script uses the rospy library to initialize a ROS node and log information. The script uses the smach library to define and execute the state machine.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="robot_state_machine.LoadEnvironment">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">robot_state_machine.</span></span><span class="sig-name descname"><span class="pre">LoadEnvironment</span></span><a class="reference internal" href="../_modules/robot_state_machine.html#LoadEnvironment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#robot_state_machine.LoadEnvironment" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code></p>
+<p>A state in a state machine that loads the ontology map of the environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>“map_loaded” outcome when the ontology map is loaded</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="robot_state_machine.LoadEnvironment.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">userdata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/robot_state_machine.html#LoadEnvironment.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#robot_state_machine.LoadEnvironment.execute" title="Permalink to this definition"></a></dt>
+<dd><p>Execute the LoadEnvironment state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>userdata</strong> – user-defined data to pass between states</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>“map_loaded” outcome when the ontology map is loaded</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="robot_state_machine.load_topology_plot">
+<span class="sig-prename descclassname"><span class="pre">robot_state_machine.</span></span><span class="sig-name descname"><span class="pre">load_topology_plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/robot_state_machine.html#load_topology_plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#robot_state_machine.load_topology_plot" title="Permalink to this definition"></a></dt>
+<dd><p>Load the topology plot ontology file and apply buffered changes to the ontology.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="robot_state_machine.main">
+<span class="sig-prename descclassname"><span class="pre">robot_state_machine.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/robot_state_machine.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#robot_state_machine.main" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, yeshwanth guru krishnakumar.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
