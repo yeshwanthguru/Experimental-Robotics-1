@@ -42,11 +42,10 @@ This project features a robust software architecture that utilizes a range of cu
 
 ### 🔹 UML Diagram: 📊
 <br><br>
+![UMLDiagram drawio (2)](https://user-images.githubusercontent.com/72270080/236381280-8e8b3503-9203-4229-a82c-24e3e8e09674.png)
 
 <br><br>
-### 🔹 Sequence Diagram: 🔄
-<br><br>
-<br><br>
+
 # 🚀 ARCHITECTURE WORKING PROCESS: 🔧
 
 ## ROBOT_STATE_MACHINE : 
