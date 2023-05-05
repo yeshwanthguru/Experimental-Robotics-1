@@ -9,7 +9,7 @@
   <a href="https://www.python.org"><img src="https://img.shields.io/badge/language-python-blue.svg"></a>
   <a href="http://wiki.ros.org/noetic"><img src="https://img.shields.io/badge/ROS-Noetic-FF6F00.svg"></a>
   <a href="https://github.com/yeshwanthguru/Experimental-Robotics-1/pulls"><img src="https://img.shields.io/github/issues-pr/yeshwanthguru/Experimental-Robotics-1"></a>
-  <a href="https://github.com/yeshwanthguru/Experimental_robotics/blob/main/LICENSE"><img src="https://img.shields.io/github/license/yeshwanthguru/Experimental-Robotics-1"></a>
+  <a href="https://github.com/yeshwanthguru/Experimental_robotics-1/blob/main/LICENSE"><img src="https://img.shields.io/github/license/yeshwanthguru/Experimental-Robotics-1"></a>
   <a href="https://github.com/yeshwanthguru/Experimental-Robotics-1"><img src="https://img.shields.io/github/repo-size/yeshwanthguru/Experimental-Robotics-1"></a>
   <a href="https://github.com/yeshwanthguru/Experimental-Robotics-1/commits/main"><img src="https://img.shields.io/github/last-commit/yeshwanthguru/Experimental-Robotics-1"></a>
 </p>
