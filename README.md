@@ -114,7 +114,7 @@ http://www.quantum-robot.org/
 where the following task can be executed by the decision making node [Decision-make node] https://github.com/yeshwanthguru/q-robot-Thesis-Introductory/blob/test_main/tiago_testmain2.py
 
 which has the single sensory integration for reference meanwhile the multi sensroy can be done based on the scenario that need to be achieved .
-By making these improvements, we aim to provide a more attractive and user-friendly system for our users. Our goal is to help investigators to solve crimes quickly and efficiently, ultimately making our communities safer.
+By making these improvements, we aim to provide a more attractive and user-friendly system for our users. Our goal to implement the quantum sinspired node is to make bio inspired mobile robot navigation.
 
          
 ![robit-robot](https://user-images.githubusercontent.com/72270080/218888824-9766d4f7-d0f7-46cd-913e-be46becf1da0.gif)[Click me here to see in gazebo environment(Assignment 2)](https://github.com/yeshwanthguru/Experimental-robotics-2.git)
